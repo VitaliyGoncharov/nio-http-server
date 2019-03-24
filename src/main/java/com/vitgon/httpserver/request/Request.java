@@ -1,10 +1,7 @@
 package com.vitgon.httpserver.request;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import com.vitgon.httpserver.data.Cookies;
-import com.vitgon.httpserver.data.Header;
+import com.vitgon.httpserver.data.Headers;
 import com.vitgon.httpserver.data.HttpSession;
 import com.vitgon.httpserver.data.RequestBody;
 import com.vitgon.httpserver.data.RequestParameters;
@@ -19,12 +16,12 @@ public class Request {
 	private String sessionId;
 	private HttpSession session;
 	private Cookies cookies;
-	private Set<Header> headers;
+	private Headers headers;
 	private RequestBody requestBody;
 	private RequestParameters parameters;
 	
 	public Request() {
-		headers = new HashSet<>();
+		headers = new Headers();
 		cookies = new Cookies();
 		parameters = new RequestParameters();
 		requestBody = new RequestBody();
@@ -44,14 +41,6 @@ public class Request {
 
 	public void setSession(HttpSession session) {
 		this.session = session;
-	}
-
-	public Set<Header> getHeaders() {
-		return headers;
-	}
-
-	public void setHeaders(Set<Header> headers) {
-		this.headers = headers;
 	}
 
 	public HttpMethod getMethod() {
@@ -79,12 +68,7 @@ public class Request {
 	}
 	
 	public String getHeader(String headerName) {
-		for (Header header : this.headers) {
-			if (header.getName().equals(headerName)) {
-				return header.getValue();
-			}
-		}
-		return null;
+		return headers.getHeader(headerName);
 	}
 
 	public Cookies getCookies() {

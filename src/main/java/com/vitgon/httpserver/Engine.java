@@ -14,22 +14,34 @@ import com.vitgon.httpserver.enums.HttpStatus;
 import com.vitgon.httpserver.handler.HandlerMount;
 import com.vitgon.httpserver.request.Request;
 import com.vitgon.httpserver.request.RequestHandler;
-import com.vitgon.httpserver.request.RequestParser;
+import com.vitgon.httpserver.request.RequestProcessor;
 import com.vitgon.httpserver.response.Response;
+import com.vitgon.httpserver.util.FileUtil;
 
 public class Engine {
 	private Map<HandlerMount, RequestHandler> handlers = new HashMap<>();
 	private Map<String, HttpSession> sessions = new HashMap<>();
-	private RequestParser requestParser;
+	private RequestProcessor requestProcessor;
 	
 	public Engine() {
-		requestParser = new RequestParser();
 	}
 	
 	public void read(SelectionKey key) {
-		SocketChannel client = (SocketChannel) key.channel();
+		
+		requestProcessor = (RequestProcessor) key.attachment();
+		Request request;
+		
 		try {
-			Request request = requestParser.parseRequest(client);
+			if (requestProcessor == null) {
+				requestProcessor = new RequestProcessor();
+			}
+			
+			request = requestProcessor.readRequest(key);
+			
+			if (request == null) {
+				key.attach(requestProcessor);
+				return;
+			}
 			
 			if (request.getHeader("Cookie") == null) {
 				String newSessionId = UUID.randomUUID().toString();
@@ -50,7 +62,7 @@ public class Engine {
 				}
 			}
 
-			key.attach(request);
+			key.attach(requestProcessor);
 			key.interestOps(SelectionKey.OP_WRITE);
 		} catch (Exception e) {
 			e.printStackTrace();

@@ -8,12 +8,12 @@ import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.vitgon.httpserver.FileUtil;
 import com.vitgon.httpserver.Server;
 import com.vitgon.httpserver.data.Cookie;
 import com.vitgon.httpserver.data.Cookies;
 import com.vitgon.httpserver.data.Header;
 import com.vitgon.httpserver.enums.HttpStatus;
+import com.vitgon.httpserver.util.FileUtil;
 
 public class Response {
 	private final static String NEW_LINE = "\r\n";

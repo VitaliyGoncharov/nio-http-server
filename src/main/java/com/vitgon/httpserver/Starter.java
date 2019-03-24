@@ -5,7 +5,7 @@ import com.vitgon.httpserver.handler.LoginHandler;
 
 public class Starter {
 	public static void main(String[] args) {
-		Server server = new Server("192.168.1.238", 80);
+		Server server = new Server("localhost", 80);
 		server.addHandler("/login", HttpMethod.POST, new LoginHandler());
 		server.start();
 	}

@@ -1,4 +1,4 @@
-package com.vitgon.httpserver;
+package com.vitgon.httpserver.util;
 
 import java.io.IOException;
 import java.nio.file.Files;
