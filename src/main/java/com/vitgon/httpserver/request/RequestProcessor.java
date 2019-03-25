@@ -18,6 +18,7 @@ import com.vitgon.httpserver.data.RequestParameter;
 import com.vitgon.httpserver.data.RequestParameters;
 import com.vitgon.httpserver.enums.HttpMethod;
 import com.vitgon.httpserver.exception.RequestTooBigException;
+import com.vitgon.httpserver.util.FileUtil;
 
 public class RequestProcessor {
 	private ByteBuffer tempBuffer = ByteBuffer.allocate(1024);
@@ -59,9 +60,10 @@ public class RequestProcessor {
 		}
 		
 		if (!headerReceived) {
-			parseHeader(requestBuffer.array());
+			parseHeader();
 		}
 		
+		// check for test reason (see variable value in debug)
 		String headerStr = new String(headerFactory.getHeaderData());
 		
 		// if we did not get full header
@@ -102,7 +104,8 @@ public class RequestProcessor {
 		return request;
 	}
 	
-	private void parseHeader(byte[] requestData) {
+	private void parseHeader() {
+		byte[] requestData = requestBuffer.array();
 		int lastHeaderBytePosition = 0;
 		boolean parsedFirstString = false;
 		for (int i = 0; i < requestData.length; i++) {
@@ -143,28 +146,14 @@ public class RequestProcessor {
 		int receivedRequestBytesLength = requestBuffer.position();
 		int receviedBodyBytesLength = receivedRequestBytesLength - (headerBlockLastBytePosition + 1);
 		
-		// test
 		byte[] requestByteArr = requestBuffer.array();
-		int requestByteArrLength = requestByteArr.length;
-		byte[] requestBodyPart = new byte[receivedRequestBytesLength-1];
-		System.arraycopy(requestByteArr, headerBlockLastBytePosition + 1, requestBodyPart, 0, receviedBodyBytesLength-1);
+		byte[] requestBodyPart = new byte[receviedBodyBytesLength];
+		System.arraycopy(requestByteArr, headerBlockLastBytePosition + 1, requestBodyPart, 0, receviedBodyBytesLength);
 		bodyFactory.addBodyData(requestBodyPart);
 		bytesRemain = bytesRemain - receviedBodyBytesLength;
 		
-		saveToFile("src/main/resources/requestBody.txt", requestBodyPart);
-		saveToFile("src/main/resources/request.txt", requestByteArr);
-		
-		return;
-	}
-	
-	private void saveToFile(String path, byte[] arr) throws IOException {
-		File file1 = Paths.get(path).toFile();
-		System.out.println(file1.getAbsolutePath());
-		if (!file1.exists()) {
-			file1.createNewFile();
-		}
-		BufferedWriter buffWriter1 = Files.newBufferedWriter(Paths.get(path), StandardCharsets.UTF_8);
-		buffWriter1.write(new String(arr, StandardCharsets.UTF_8));
+		FileUtil.saveToFile("src/main/resources/requestBody.txt", requestBodyPart);
+		FileUtil.saveToFile("src/main/resources/request.txt", requestByteArr);
 	}
 	
 	private void parseFirstLine(String line) {

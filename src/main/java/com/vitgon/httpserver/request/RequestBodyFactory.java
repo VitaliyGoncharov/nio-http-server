@@ -5,10 +5,6 @@ public class RequestBodyFactory {
 	private int bytesReceived;
 	
 	public void addBodyData(byte[] bodyBytes) {
-		// temp
-		if (bodyData.length < bodyBytes.length) {
-			bodyData = new byte[bodyBytes.length];
-		}
 		System.arraycopy(bodyBytes, 0, bodyData, bytesReceived, bodyBytes.length);
 		bytesReceived = bodyBytes.length;
 	}
