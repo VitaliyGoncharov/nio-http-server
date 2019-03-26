@@ -1,23 +1,21 @@
 package com.vitgon.httpserver.request;
 
-import java.io.BufferedWriter;
-import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.Arrays;
 
 import com.vitgon.httpserver.Server;
 import com.vitgon.httpserver.data.Cookie;
 import com.vitgon.httpserver.data.Header;
+import com.vitgon.httpserver.data.Part;
 import com.vitgon.httpserver.data.RequestParameter;
 import com.vitgon.httpserver.data.RequestParameters;
 import com.vitgon.httpserver.enums.HttpMethod;
 import com.vitgon.httpserver.exception.RequestTooBigException;
+import com.vitgon.httpserver.util.ByteUtil;
 import com.vitgon.httpserver.util.FileUtil;
 
 public class RequestProcessor {
@@ -193,10 +191,41 @@ public class RequestProcessor {
 			
 			if (contentType.equals("application/x-www-form-urlencoded")) {
 				parseUrlEncodedBody();
+			} else if (contentType.equals("multipart/form-data")) {
+				parseMultipartFormData();
 			}
 		}
 	}
 	
+	private void parseMultipartFormData() {
+		byte[] bodyData = bodyFactory.getBodyData();
+		String boundary = headerFactory.getBoundary();
+		byte[] delimeterBytes = ("--" + boundary).getBytes(StandardCharsets.UTF_8);
+		
+		int lastDelimeterStartPos = 0;
+		int lastPartEndPos = 0;
+		while ((lastDelimeterStartPos = ByteUtil.indexOf(bodyData, lastPartEndPos, delimeterBytes)) != -1) {
+			int partStartPosition = lastDelimeterStartPos + delimeterBytes.length + 2;
+			int nextDelimeterStartPos = ByteUtil.indexOf(bodyData, partStartPosition, delimeterBytes);
+			
+			byte[] partData = Arrays.copyOfRange(bodyData, partStartPosition, nextDelimeterStartPos);
+			bodyFactory.addPart(new Part(partData));
+			
+			// decrease iterations over bodyData while searching
+			// for next delimeter from lastPartEndPos
+			lastPartEndPos = nextDelimeterStartPos - 2;  
+			
+			// if we reached requestBody last delimeter (4 = 2 bytes for "--" and 2 bytes for "\r\n")
+			// then get out of this loop and stop searching for next delimeter
+			if (nextDelimeterStartPos + delimeterBytes.length + 4 == contentLength) break;
+		}
+		
+		// for test purpose (see debug)
+		for (Part part : bodyFactory.getParts()) {
+			String partStr = new String(part.getPartData(), StandardCharsets.UTF_8);
+		}
+	}
+
 	private void parseUrlEncodedBody() {
 		byte[] requestBody = bodyFactory.getBodyData();
 		RequestParameters requestParameters = headerFactory.getParameters();

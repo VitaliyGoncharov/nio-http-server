@@ -1,5 +1,7 @@
 package com.vitgon.httpserver.request;
 
+import java.util.StringTokenizer;
+
 import com.vitgon.httpserver.data.Header;
 import com.vitgon.httpserver.data.Headers;
 import com.vitgon.httpserver.data.RequestParameters;
@@ -69,5 +71,18 @@ public class RequestHeaderFactory {
 
 	public void setParameters(RequestParameters parameters) {
 		this.parameters = parameters;
+	}
+	
+	public String getBoundary() {
+		String contentTypeHeader = getHeader("Content-Type"); 
+		String[] contentTypeHeaderParts = contentTypeHeader.split(";");
+		if (contentTypeHeaderParts.length >= 1) {
+			String boundaryKeyValue = contentTypeHeaderParts[1].trim();
+			
+			if (boundaryKeyValue.startsWith("boundary=")) {
+				return boundaryKeyValue.split("=")[1];
+			}
+		}
+		return null;
 	}
 }
