@@ -151,8 +151,9 @@ public class RequestProcessor {
 		bodyFactory.addBodyData(requestBodyPart);
 		bytesRemain = bytesRemain - receviedBodyBytesLength;
 		
-		FileUtil.saveToFile("src/main/resources/requestBody.txt", requestBodyPart);
-		FileUtil.saveToFile("src/main/resources/request.txt", requestByteArr);
+		// for test purpose
+		FileUtil.saveToFile("src/main/resources/debug/requestBody.txt", requestBodyPart);
+		FileUtil.saveToFile("src/main/resources/debug/request.txt", requestByteArr);
 	}
 	
 	private void parseFirstLine(String line) {
@@ -243,7 +244,7 @@ public class RequestProcessor {
 					// plus 1 - because we copy from (including this) position,
 					// and we need current header start position that is right
 					// after last header end position
-					byte[] headerBytes = Arrays.copyOfRange(partData, lastHeaderEndPos + 1, i);
+					byte[] headerBytes = Arrays.copyOfRange(partData, lastHeaderEndPos + 1, i); // maybe need i - 2
 					String headerStr = new String(headerBytes, StandardCharsets.UTF_8).trim();
 					String[] headerNameValuePair = headerStr.split(":");
 					String headerName = headerNameValuePair[0];
@@ -264,17 +265,71 @@ public class RequestProcessor {
 			byte[] partContent = Arrays.copyOfRange(partData, lastHeaderEndPos + 3, partData.length);
 			part.setContent(partContent);
 			
-			// TODO: create part fields: name, size, contentType
+			extractPartContentType(part);
+			countPartSize(part);
+			extractPartName(part);
+			extractPartFilename(part);
 		}
 		
 		// for test purpose
 		List<Part> parts = bodyFactory.getParts();
 		for (int i = 0; i < parts.size(); i++) {
+			Part curPart = parts.get(i);
+			String toFileName;
+			
+			if (curPart.getFilename() != null && !curPart.getFilename().equals("")){
+				toFileName = curPart.getFilename();
+			} else if (curPart.getName() != null && !curPart.getName().equals("")) {
+				toFileName = "part-" + curPart.getName() + ".txt";
+			} else {
+				toFileName = "part-" + i + ".txt";
+			}
+			
 			try {
-				FileUtil.saveToFile("src/main/resources/part-"+ i + ".txt", parts.get(i).getContent());
+				FileUtil.saveToFile("src/main/resources/debug/part-" + toFileName, curPart.getContent());
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
+		}
+	}
+
+	private void extractPartFilename(Part part) {
+		String[] contentDispositionStrArr = part.getHeader("Content-Disposition").split(";");
+		
+		String filename = null;
+		if (contentDispositionStrArr.length == 3) {
+			String[] fileNameKeyValueStrArr = contentDispositionStrArr[2].trim().split("=");
+			String filenameValue = fileNameKeyValueStrArr[1];
+			
+			// remove double quotes from filename value
+			filename = filenameValue.substring(1, filenameValue.length() - 1);
+		}
+		part.setFilename(filename);
+	}
+
+	private void extractPartName(Part part) {
+		String[] contentDispositionStrArr = part.getHeader("Content-Disposition").split(";");
+		
+		String partName = null;
+		if (contentDispositionStrArr.length >= 2) {
+			String[] partNameKeyValueStrArr = contentDispositionStrArr[1].trim().split("=");
+			String partNameValue = partNameKeyValueStrArr[1];
+			
+			// remove double quotes from part name value
+			partName = partNameValue.substring(1, partNameValue.length() - 1);
+		}
+		part.setName(partName);
+	}
+
+	private void countPartSize(Part part) {
+		part.setSize(part.getPartData().length);
+	}
+
+	private void extractPartContentType(Part part) {
+		String contentType = part.getHeader("Content-Type");
+		
+		if (contentType != null) {
+			part.setContentType(contentType);
 		}
 	}
 

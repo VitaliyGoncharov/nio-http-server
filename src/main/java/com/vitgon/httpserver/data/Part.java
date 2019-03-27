@@ -5,6 +5,11 @@ public class Part {
 	int headerBlockEndPos;
 	private Headers headers;
 	private byte[] content;
+	
+	private String contentType;
+	private String name;
+	private String filename;
+	private int size;
 
 	public Part(byte[] partData) {
 		this.partData = partData;
@@ -45,5 +50,37 @@ public class Part {
 
 	public void setHeaderBlockEndPos(int headerBlockEndPos) {
 		this.headerBlockEndPos = headerBlockEndPos;
+	}
+
+	public String getContentType() {
+		return contentType;
+	}
+
+	public void setContentType(String contentType) {
+		this.contentType = contentType;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public String getFilename() {
+		return filename;
+	}
+
+	public void setFilename(String filename) {
+		this.filename = filename;
+	}
+
+	public int getSize() {
+		return size;
+	}
+
+	public void setSize(int size) {
+		this.size = size;
 	}
 }
