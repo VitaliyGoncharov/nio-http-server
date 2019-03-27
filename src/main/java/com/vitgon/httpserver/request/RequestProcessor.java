@@ -6,6 +6,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.List;
 
 import com.vitgon.httpserver.Server;
 import com.vitgon.httpserver.data.Cookie;
@@ -208,7 +209,8 @@ public class RequestProcessor {
 			int partStartPosition = lastDelimeterStartPos + delimeterBytes.length + 2;
 			int nextDelimeterStartPos = ByteUtil.indexOf(bodyData, partStartPosition, delimeterBytes);
 			
-			byte[] partData = Arrays.copyOfRange(bodyData, partStartPosition, nextDelimeterStartPos);
+			// 2 bytes for \r\n between part content and next boundary
+			byte[] partData = Arrays.copyOfRange(bodyData, partStartPosition, nextDelimeterStartPos - 2);
 			bodyFactory.addPart(new Part(partData));
 			
 			// decrease iterations over bodyData while searching
@@ -223,6 +225,56 @@ public class RequestProcessor {
 		// for test purpose (see debug)
 		for (Part part : bodyFactory.getParts()) {
 			String partStr = new String(part.getPartData(), StandardCharsets.UTF_8);
+		}
+		
+		parseParts();
+	}
+	
+	private void parseParts() {
+		for (Part part : bodyFactory.getParts()) {
+			byte[] partData = part.getPartData();
+			
+			// get part headers
+			int lastHeaderEndPos = -1;
+			for (int i = 0; i < partData.length; i++) {
+				if (i == 0) continue;
+				
+				if (partData[i - 1] == CARRIAGE_RETURN && partData[i] == NEW_LINE) {
+					// plus 1 - because we copy from (including this) position,
+					// and we need current header start position that is right
+					// after last header end position
+					byte[] headerBytes = Arrays.copyOfRange(partData, lastHeaderEndPos + 1, i);
+					String headerStr = new String(headerBytes, StandardCharsets.UTF_8).trim();
+					String[] headerNameValuePair = headerStr.split(":");
+					String headerName = headerNameValuePair[0];
+					String headerValue = headerNameValuePair[1].trim();
+					part.addHeader(new Header(headerName, headerValue));
+					
+					// position at \n
+					lastHeaderEndPos = i;
+					
+					if (partData[i + 1] == CARRIAGE_RETURN && partData[i + 2] == NEW_LINE) {
+						part.setHeaderBlockEndPos(i + 2);
+						break;
+					}
+				}
+			}
+			
+			// get part body content (3 bytes = 2 bytes for \r\n and 1 byte is for start position of content)
+			byte[] partContent = Arrays.copyOfRange(partData, lastHeaderEndPos + 3, partData.length);
+			part.setContent(partContent);
+			
+			// TODO: create part fields: name, size, contentType
+		}
+		
+		// for test purpose
+		List<Part> parts = bodyFactory.getParts();
+		for (int i = 0; i < parts.size(); i++) {
+			try {
+				FileUtil.saveToFile("src/main/resources/part-"+ i + ".txt", parts.get(i).getContent());
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
