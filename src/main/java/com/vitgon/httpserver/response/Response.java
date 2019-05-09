@@ -33,8 +33,7 @@ public class Response {
 	}
 	
 	public Response(Cookies reqCookies, String sessionId) {
-		headers = new HashSet<>();
-		responseBody = new ByteArrayOutputStream();
+		this();
 		
 		if (cookies != null) {
 			this.cookies = reqCookies;

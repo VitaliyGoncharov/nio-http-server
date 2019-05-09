@@ -18,12 +18,12 @@ public class FileUtil {
 	
 	public static void saveToFile(String path, byte[] arr) throws IOException {
 		File file = Paths.get(path).toFile();
-		System.out.println(file.getAbsolutePath());
 		if (!file.exists()) {
 			file.createNewFile();
 		}
 		BufferedWriter buffWriter = Files.newBufferedWriter(Paths.get(path), StandardCharsets.UTF_8);
 		buffWriter.write(new String(arr, StandardCharsets.UTF_8));
 		buffWriter.close();
+		System.out.printf("File was created: %s", file.getName());
 	}
 }

@@ -8,9 +8,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import com.vitgon.httpserver.data.Cookie;
 import com.vitgon.httpserver.data.HttpSession;
 import com.vitgon.httpserver.enums.HttpMethod;
 import com.vitgon.httpserver.enums.HttpStatus;
+import com.vitgon.httpserver.exception.EmptyRequestException;
 import com.vitgon.httpserver.handler.HandlerMount;
 import com.vitgon.httpserver.request.Request;
 import com.vitgon.httpserver.request.RequestHandler;
@@ -51,6 +53,7 @@ public class Engine {
 				sessions.put(newSessionId, newSession);
 				request.setSession(newSession);
 				request.setSessionId(newSessionId);
+				request.getCookies().add(new Cookie("sessionid", newSessionId));
 			} else {
 				if (request.getCookies().get("sessionid") != null) {
 					HttpSession session = sessions.get(request.getCookies().get("sessionid"));
@@ -62,8 +65,12 @@ public class Engine {
 				}
 			}
 
-			key.attach(requestProcessor);
+	
+			key.attach(request);
 			key.interestOps(SelectionKey.OP_WRITE);
+		} catch(EmptyRequestException e) {
+			key.interestOps(SelectionKey.OP_WRITE);
+			handleEmptyRequest(key);
 		} catch (Exception e) {
 			e.printStackTrace();
 			key.interestOps(SelectionKey.OP_WRITE);
@@ -110,6 +117,15 @@ public class Engine {
 		ByteBuffer responseBuff = ByteBuffer.wrap(responseBytes);
 		client.write(responseBuff);
 		client.close();
+	}
+	
+	private void handleEmptyRequest(SelectionKey key) {
+		SocketChannel client = (SocketChannel) key.channel();
+		try {
+			client.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	private void sendResponseError(SelectionKey key) {

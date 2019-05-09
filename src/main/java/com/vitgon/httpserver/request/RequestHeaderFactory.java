@@ -1,6 +1,6 @@
 package com.vitgon.httpserver.request;
 
-import java.util.StringTokenizer;
+import java.util.Set;
 
 import com.vitgon.httpserver.data.Header;
 import com.vitgon.httpserver.data.Headers;
@@ -19,6 +19,7 @@ public class RequestHeaderFactory {
 	
 	public RequestHeaderFactory() {
 		headers = new Headers();
+		parameters = new RequestParameters();
 	}
 	
 	public void addHeaderData(byte[] headerBytes) {
@@ -84,5 +85,9 @@ public class RequestHeaderFactory {
 			}
 		}
 		return null;
+	}
+	
+	public Headers getHeaders() {
+		return headers;
 	}
 }

@@ -12,9 +12,11 @@ import com.vitgon.httpserver.Server;
 import com.vitgon.httpserver.data.Cookie;
 import com.vitgon.httpserver.data.Header;
 import com.vitgon.httpserver.data.Part;
+import com.vitgon.httpserver.data.RequestBody;
 import com.vitgon.httpserver.data.RequestParameter;
 import com.vitgon.httpserver.data.RequestParameters;
 import com.vitgon.httpserver.enums.HttpMethod;
+import com.vitgon.httpserver.exception.EmptyRequestException;
 import com.vitgon.httpserver.exception.RequestTooBigException;
 import com.vitgon.httpserver.util.ByteUtil;
 import com.vitgon.httpserver.util.FileUtil;
@@ -40,7 +42,7 @@ public class RequestProcessor {
 		bodyFactory = new RequestBodyFactory();
 	}
 	
-	public Request readRequest(SelectionKey key) throws IOException, RequestTooBigException {
+	public Request readRequest(SelectionKey key) throws IOException, RequestTooBigException, EmptyRequestException {
 		SocketChannel client = (SocketChannel) key.channel();
 		
 		// assume that we didn't flip requestBuffer
@@ -58,15 +60,26 @@ public class RequestProcessor {
 			}
 		}
 		
+		// if it is an empty request, then stop processing
+		if (requestBuffer.position() == 0) {
+			throw new EmptyRequestException();
+		}
+		
 		if (!headerReceived) {
 			parseHeader();
 		}
 		
 		// check for test reason (see variable value in debug)
-		String headerStr = new String(headerFactory.getHeaderData());
+		if (headerFactory.getHeaderData() != null) {
+			String headerStr = new String(headerFactory.getHeaderData());
+		}
 		
 		// if we did not get full header
 		if (headerReceived == false) return null;
+		
+		if (headerFactory.getMethod() == HttpMethod.GET) {
+			parseGetParameters();
+		}
 		
 		// if request method is POST we should expect body
 		if (shouldExpectBody()) {
@@ -93,16 +106,9 @@ public class RequestProcessor {
 			}
 		}
 		
-		// we MUST generate request
-		// TODO: set headers, method, uri and etc.
-		Request request = new Request();
-		if (request.getHeader("Cookie") != null) {
-			parseCookie(request.getHeader("Cookie"), request);
-		}
-		
-		return request;
+		return generateRequest();
 	}
-	
+
 	private void parseHeader() {
 		byte[] requestData = requestBuffer.array();
 		int lastHeaderBytePosition = 0;
@@ -137,6 +143,20 @@ public class RequestProcessor {
 					headerFactory.addHeaderData(Arrays.copyOfRange(requestData, 0, headerBlockLastBytePosition));
 					break;
 				}
+			}
+		}
+	}
+	
+	private void parseGetParameters() {
+		RequestParameters requestParameters = headerFactory.getParameters();
+		String uri = headerFactory.getUri();
+		int paramsStartPos = uri.indexOf("?");
+		if (paramsStartPos != -1) {
+			String paramsStr = uri.substring(paramsStartPos + 1);
+			String[] paramsKeyValue = paramsStr.split("&");
+			for (String paramKeyValue : paramsKeyValue) {
+				String[] paramKeyValueArr = paramKeyValue.split("=");
+				requestParameters.add(new RequestParameter(paramKeyValueArr[0], paramKeyValueArr[1]));
 			}
 		}
 	}
@@ -223,11 +243,6 @@ public class RequestProcessor {
 			if (nextDelimeterStartPos + delimeterBytes.length + 4 == contentLength) break;
 		}
 		
-		// for test purpose (see debug)
-		for (Part part : bodyFactory.getParts()) {
-			String partStr = new String(part.getPartData(), StandardCharsets.UTF_8);
-		}
-		
 		parseParts();
 	}
 	
@@ -244,7 +259,7 @@ public class RequestProcessor {
 					// plus 1 - because we copy from (including this) position,
 					// and we need current header start position that is right
 					// after last header end position
-					byte[] headerBytes = Arrays.copyOfRange(partData, lastHeaderEndPos + 1, i); // maybe need i - 2
+					byte[] headerBytes = Arrays.copyOfRange(partData, lastHeaderEndPos + 1, i);
 					String headerStr = new String(headerBytes, StandardCharsets.UTF_8).trim();
 					String[] headerNameValuePair = headerStr.split(":");
 					String headerName = headerNameValuePair[0];
@@ -371,6 +386,22 @@ public class RequestProcessor {
 			return 0;
 		}
 		return contentLengthInt;
+	}
+	
+	public Request generateRequest() {
+		Request request = new Request();
+		request.setMethod(headerFactory.getMethod());
+		request.setParameters(headerFactory.getParameters());
+		request.setHttpVersion(headerFactory.getHttpVersion());
+		request.setRequestBody(new RequestBody(bodyFactory.getBodyData()));
+		request.setHeaders(headerFactory.getHeaders());
+		
+		if (request.getHeader("Cookie") != null) {
+			parseCookie(request.getHeader("Cookie"), request);
+		}
+		request.setUri(headerFactory.getUri());
+		
+		return request;
 	}
 	
 	private void addToRequestBuffer(byte[] requestPartBytes) {
