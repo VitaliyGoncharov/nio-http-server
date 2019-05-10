@@ -46,21 +46,17 @@ public class Engine {
 			}
 			
 			if (request.getHeader("Cookie") == null) {
-				String newSessionId = UUID.randomUUID().toString();
-				HttpSession newSession = new HttpSession();
-				newSession.setSessionMap(new HashMap<String, String>());
-
-				sessions.put(newSessionId, newSession);
-				request.setSession(newSession);
-				request.setSessionId(newSessionId);
-				request.getCookies().add(new Cookie("sessionid", newSessionId));
+				HttpSession session = createSession();
+				attachSession(request, session);
 			} else {
 				if (request.getCookies().get("sessionid") != null) {
 					HttpSession session = sessions.get(request.getCookies().get("sessionid"));
 
 					if (session != null) {
-						request.setSession(session);
-						request.setSessionId(request.getCookies().get("sessionid"));
+						attachSession(request, session);
+					} else {
+						session = createSession();
+						attachSession(request, session);
 					}
 				}
 			}
@@ -76,6 +72,22 @@ public class Engine {
 			key.interestOps(SelectionKey.OP_WRITE);
 			sendResponseError(key);
 		}
+	}
+	
+	private HttpSession createSession() {
+		String newSessionId = UUID.randomUUID().toString();
+		HttpSession newSession = new HttpSession();
+		newSession.setId(newSessionId);
+		
+		// add new session to sessions map
+		sessions.put(newSessionId, newSession);
+		return newSession;
+	}
+	
+	private void attachSession(Request request, HttpSession session) {
+		request.setSession(session);
+		request.setSessionId(session.getId());
+		request.getCookies().add(new Cookie("sessionid", session.getId().toString()));
 	}
 	
 	public void write(SelectionKey key) throws IOException {

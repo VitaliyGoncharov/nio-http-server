@@ -15,7 +15,7 @@ public class Server extends Thread {
 	private final static String HOST = "localhost";
 	private final static int PORT = 80;
 	public final static String SERVER_NAME = "NioHttpServer v0.1";
-	public final static int MAX_POST_SIZE = 8_000_000;
+	public final static int MAX_POST_SIZE = 21_000_000;
 	private static ServerParameters serverParameters;
 	
 	private Engine engine;

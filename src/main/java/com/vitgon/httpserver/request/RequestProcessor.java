@@ -45,19 +45,14 @@ public class RequestProcessor {
 	public Request readRequest(SelectionKey key) throws IOException, RequestTooBigException, EmptyRequestException {
 		SocketChannel client = (SocketChannel) key.channel();
 		
-		// assume that we didn't flip requestBuffer
-		int requestBufferSize = requestBuffer.position();
-		
-		if (requestBufferSize == 0) {
+		tempBuffer.clear();
+		int read = 0;
+		while ((read = client.read(tempBuffer)) > 0) {
+			tempBuffer.flip();
+			byte[] bytes = new byte[tempBuffer.limit()];
+			tempBuffer.get(bytes);
 			tempBuffer.clear();
-			int read = 0;
-			while ((read = client.read(tempBuffer)) > 0) {
-				tempBuffer.flip();
-				byte[] bytes = new byte[tempBuffer.limit()];
-				tempBuffer.get(bytes);
-				tempBuffer.clear();
-				addToRequestBuffer(bytes);
-			}
+			addToRequestBuffer(bytes);
 		}
 		
 		// if it is an empty request, then stop processing
@@ -83,6 +78,8 @@ public class RequestProcessor {
 		
 		// if request method is POST we should expect body
 		if (shouldExpectBody()) {
+			
+			// when we get here for the first time, our contentLength is 0
 			if (contentLength == 0) {
 				contentLength = getContentLength();
 				checkContentLength();
@@ -90,20 +87,21 @@ public class RequestProcessor {
 				bytesRemain = contentLength;
 			}
 			
-			// if full body was received
+			// if full body was not received
+			int receivedInTheLastTime = contentLength - bytesRemain;
+			int receivedNow = requestBuffer.position() - headerBlockLastBytePosition - receivedInTheLastTime;
+			
+			bytesRemain = bytesRemain - receivedNow;
+			
+			// in case if we received only part of body
+			// then return null and start reading new bytes
 			if (bytesRemain > 0) {
-				getBody();
-				
-				// in case if we received only part of body
-				// continue reading from SelectionKey
-				if (bytesRemain > 0) {
-					return null;
-				} else {
-					parseBody();
-				}
-			} else {
-				parseBody();
+				return null;
 			}
+			
+			// extract body from request and parse it
+			getBody();
+			parseBody();
 		}
 		
 		return generateRequest();
@@ -162,14 +160,10 @@ public class RequestProcessor {
 	}
 	
 	private void getBody() throws RequestTooBigException, IOException {
-		int receivedRequestBytesLength = requestBuffer.position();
-		int receviedBodyBytesLength = receivedRequestBytesLength - (headerBlockLastBytePosition + 1);
-		
 		byte[] requestByteArr = requestBuffer.array();
-		byte[] requestBodyPart = new byte[receviedBodyBytesLength];
-		System.arraycopy(requestByteArr, headerBlockLastBytePosition + 1, requestBodyPart, 0, receviedBodyBytesLength);
-		bodyFactory.addBodyData(requestBodyPart);
-		bytesRemain = bytesRemain - receviedBodyBytesLength;
+		byte[] requestBodyPart = new byte[contentLength];
+		System.arraycopy(requestByteArr, headerBlockLastBytePosition + 1, requestBodyPart, 0, contentLength);
+		bodyFactory.setBodyData(requestBodyPart);
 		
 		// for test purpose
 		FileUtil.saveToFile("src/main/resources/debug/requestBody.txt", requestBodyPart);
@@ -400,6 +394,7 @@ public class RequestProcessor {
 			parseCookie(request.getHeader("Cookie"), request);
 		}
 		request.setUri(headerFactory.getUri());
+		request.setParts(bodyFactory.getParts());
 		
 		return request;
 	}

@@ -1,8 +1,12 @@
 package com.vitgon.httpserver.request;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.vitgon.httpserver.data.Cookies;
 import com.vitgon.httpserver.data.Headers;
 import com.vitgon.httpserver.data.HttpSession;
+import com.vitgon.httpserver.data.Part;
 import com.vitgon.httpserver.data.RequestBody;
 import com.vitgon.httpserver.data.RequestParameter;
 import com.vitgon.httpserver.data.RequestParameters;
@@ -20,12 +24,14 @@ public class Request {
 	private Headers headers;
 	private RequestBody requestBody;
 	private RequestParameters parameters;
+	private List<Part> parts;
 	
 	public Request() {
 		headers = new Headers();
 		cookies = new Cookies();
 		parameters = new RequestParameters();
 		requestBody = new RequestBody();
+		parts = new ArrayList<>();
 	}
 
 	public String getSessionId() {
@@ -111,5 +117,22 @@ public class Request {
 
 	public void setHeaders(Headers headers) {
 		this.headers = headers;
+	}
+
+	public List<Part> getParts() {
+		return parts;
+	}
+
+	public void setParts(List<Part> parts) {
+		this.parts = parts;
+	}
+	
+	public Part getPart(String name) {
+		for (Part part : parts) {
+			if (part.getName().equals(name)) {
+				return part;
+			}
+		}
+		return null;
 	}
 }

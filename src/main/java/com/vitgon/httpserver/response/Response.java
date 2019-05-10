@@ -173,4 +173,8 @@ public class Response {
 	public byte[] readResponseFile() throws IOException {
 		return FileUtil.readFile("templates/" + responsePage);
 	}
+	
+	public void sendRedirect(String uri, int timeout) {
+		headers.add(new Header("Refresh", Integer.toString(timeout) + "; url=" + uri));
+	}
 }

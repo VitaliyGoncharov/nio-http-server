@@ -15,9 +15,8 @@ public class RequestBodyFactory {
 		parts = new ArrayList<>();
 	}
 
-	public void addBodyData(byte[] bodyBytes) {
-		System.arraycopy(bodyBytes, 0, bodyData, bytesReceived, bodyBytes.length);
-		bytesReceived = bodyBytes.length;
+	public void setBodyData(byte[] bodyBytes) {
+		bodyData = bodyBytes;
 	}
 	
 	public byte[] getBodyData() {

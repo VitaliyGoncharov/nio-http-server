@@ -12,6 +12,6 @@ public class HomeHandler implements RequestHandler {
 		if (name == null) {
 			name = "Guest";
 		}
-		response.setResponseBody("Hey, hello " + name + "!!!");
+        response.setResponseBody("Hello, " + name);
 	}
 }
