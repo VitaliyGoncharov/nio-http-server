@@ -5,7 +5,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import com.vitgon.httpserver.Server;
@@ -25,6 +27,7 @@ public class Response {
 	private Cookies cookies;
 	private Set<Header> headers;
 	private String responsePage;
+	private Map<String, Object> modelMap = new HashMap<>();
 	
 	public Response() {
 		headers = new HashSet<>();
@@ -176,5 +179,17 @@ public class Response {
 	
 	public void sendRedirect(String uri, int timeout) {
 		headers.add(new Header("Refresh", Integer.toString(timeout) + "; url=" + uri));
+	}
+
+	public Map<String, Object> getModelMap() {
+		return modelMap;
+	}
+
+	public void setModelMap(Map<String, Object> modelMap) {
+		this.modelMap = modelMap;
+	}
+	
+	public void setModelAttribute(String name, Object value) {
+		this.modelMap.put(name, value);
 	}
 }

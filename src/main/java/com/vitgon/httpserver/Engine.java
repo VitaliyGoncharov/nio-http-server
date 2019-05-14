@@ -19,11 +19,15 @@ import com.vitgon.httpserver.request.RequestHandler;
 import com.vitgon.httpserver.request.RequestProcessor;
 import com.vitgon.httpserver.response.Response;
 import com.vitgon.httpserver.util.FileUtil;
+import com.vitgon.httpserver.view.View;
+import com.vitgon.httpserver.view.resolver.ThymeleafViewResolver;
+import com.vitgon.httpserver.view.resolver.ViewResolver;
 
 public class Engine {
 	private Map<HandlerMount, RequestHandler> handlers = new HashMap<>();
 	private Map<String, HttpSession> sessions = new HashMap<>();
 	private RequestProcessor requestProcessor;
+	private ViewResolver viewResolver;
 	
 	public Engine() {
 	}
@@ -123,6 +127,13 @@ public class Engine {
 			}
 		} else {
 			handler.handle(request, response);
+			String responsePage = response.getResponsePage();
+			if (responsePage != null && !responsePage.equals("")) {
+				Map<String, Object> modelMap = response.getModelMap();
+				View view = viewResolver.resolveView();
+				view.render(modelMap, request, response);
+			}
+			
 			responseBytes = response.createResponse(HttpStatus.OK);
 		}
 		
@@ -159,5 +170,19 @@ public class Engine {
 	
 	public void addHandler(String uri, HttpMethod method, RequestHandler handler) {
 		handlers.put(new HandlerMount(uri, method), handler);
+	}
+
+	public ViewResolver getViewResolver() {
+		return viewResolver;
+	}
+
+	public void setViewResolver(ViewResolver viewResolver) {
+		this.viewResolver = viewResolver;
+	}
+
+	public void autoConfigureSettings() {
+		if (viewResolver == null) {
+			viewResolver = new ThymeleafViewResolver();
+		}
 	}
 }

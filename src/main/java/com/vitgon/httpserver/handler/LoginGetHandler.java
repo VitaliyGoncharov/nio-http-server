@@ -4,15 +4,10 @@ import com.vitgon.httpserver.request.Request;
 import com.vitgon.httpserver.request.RequestHandler;
 import com.vitgon.httpserver.response.Response;
 
-public class HomeHandler implements RequestHandler {
+public class LoginGetHandler implements RequestHandler {
 
 	@Override
 	public void handle(Request request, Response response) {
-		String name = request.getSession().getAttribute("name");
-		if (name == null) {
-			name = "Guest";
-		}
-		response.setResponsePage("index");
-        response.setModelAttribute("name", name);
+		response.setResponsePage("login");
 	}
 }

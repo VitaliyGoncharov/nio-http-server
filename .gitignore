@@ -4,5 +4,4 @@
 target
 
 src/main/resources/debug/*
-src/main/resources/templates/*
 src/main/resources/uploads/*

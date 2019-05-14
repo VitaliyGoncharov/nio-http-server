@@ -10,12 +10,13 @@ import java.util.Iterator;
 import com.vitgon.httpserver.data.ServerParameters;
 import com.vitgon.httpserver.enums.HttpMethod;
 import com.vitgon.httpserver.request.RequestHandler;
+import com.vitgon.httpserver.view.resolver.ViewResolver;
 
 public class Server extends Thread {
 	private final static String HOST = "localhost";
 	private final static int PORT = 80;
 	public final static String SERVER_NAME = "NioHttpServer v0.1";
-	public final static int MAX_POST_SIZE = 21_000_000;
+	public final static int MAX_POST_SIZE = 21_000_000; // 21 MB
 	private static ServerParameters serverParameters;
 	
 	private Engine engine;
@@ -40,9 +41,14 @@ public class Server extends Thread {
 	public void addHandler(String uri, HttpMethod method, RequestHandler handler) {
 		engine.addHandler(uri, method, handler);
 	}
+	
+	public void setViewResolver(ViewResolver viewResolver) {
+		this.engine.setViewResolver(viewResolver);
+	}
 
 	@Override
 	public void run() {
+		this.engine.autoConfigureSettings();
 		try {
 			ServerSocketChannel server = ServerSocketChannel.open();
 			server.socket().bind(new InetSocketAddress(serverParameters.getHost(), serverParameters.getPort()));
